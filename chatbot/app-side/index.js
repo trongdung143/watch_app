@@ -1,6 +1,6 @@
 import { BaseSideService } from "@zeppos/zml/base-side";
 
-let url = "https://watch-app-lyj2.onrender.com" // http://192/168.1.100:8080
+let url = "http://192.168.1.100:8080" // http://192.168.1.100:8080
 
 async function fetchData(res, data) {
     try {
@@ -44,7 +44,7 @@ async function pingServer(res) {
     try {
         const response = await fetchWithTimeout(
             fetch({
-                url: `${url}/`,
+                url: `${url}/health`,
                 method: 'GET',
             }),
             2000
@@ -69,8 +69,59 @@ async function pingServer(res) {
 }
 
 async function textToSpeech(res, data) {
+    try {
+        const response = await fetch({
+            url: `${url}/tts`,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data),
+        })
 
+
+        const resBody =
+            typeof response.body === 'string'
+                ? JSON.parse(response.body)
+                : response.body
+
+        if (resBody.status === "READY") {
+            console.log("TTS ready, downloading audio...")
+            try {
+                downloadFile({
+                    url: `${url}/tts`,
+                    headers: {},
+                    timeout: 60000,
+                    filePath: 'data://download/tts.mp3'
+                })
+
+                res(null, {
+                    type: "TTS_RESPONSE",
+                    result: "DONE_TTS",
+                })
+            }
+            catch (error) {
+                res(null, {
+                    type: "TTS_RESPONSE",
+                    result: "ERROR_TTS",
+                })
+            }
+        }
+        else {
+            res(null, {
+                type: "TTS_RESPONSE",
+                result: "ERROR_TTS",
+            })
+        }
+
+    } catch (error) {
+        res(null, {
+            type: "TTS_RESPONSE",
+            result: "TIMEOUT_OR_ERROR_TTS",
+        })
+    }
 }
+
 
 
 AppSideService(
@@ -81,9 +132,11 @@ AppSideService(
                 fetchData(res, req.data)
             }
             else if (req.method === "PING") {
-                console.log("Ping request received")
                 pingServer(res)
 
+            }
+            else if (req.method === "TTS") {
+                textToSpeech(res, req.data)
             }
         },
     })

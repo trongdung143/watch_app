@@ -1,6 +1,6 @@
 import { BasePage } from "@zeppos/zml/base-page";
 import * as hmUI from "@zos/ui";
-
+import { create, id } from '@zos/media'
 import {
   ASK_BUTTON,
   RESULT_TEXT,
@@ -17,9 +17,23 @@ Page(
         data: { 'message': message }
       })
         .then((data) => {
-
+          this.textToSpeech(data.result)
           textWidget.setProperty(hmUI.prop.TEXT, data.result)
 
+        })
+        .catch((res) => {
+        });
+    },
+
+    textToSpeech(text) {
+      this.request({
+        method: "TTS",
+        data: { 'text': text }
+      })
+        .then((data) => {
+          if (data.result === "DONE_TTS") {
+
+          }
         })
         .catch((res) => {
         });

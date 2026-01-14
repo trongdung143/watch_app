@@ -17,10 +17,6 @@ Page(
         data: { 'message': message }
       })
         .then((data) => {
-          console.log("Fetch chat result:", JSON.stringify(data));
-          if (!textWidget) {
-            textWidget = hmUI.createWidget(hmUI.widget.TEXT, RESULT_TEXT)
-          }
 
           textWidget.setProperty(hmUI.prop.TEXT, data.result)
 
@@ -34,10 +30,7 @@ Page(
         method: "PING",
       })
         .then((data) => {
-
-          if (!textWidget) {
-            textWidget = hmUI.createWidget(hmUI.widget.TEXT, RESULT_TEXT)
-          }
+          textWidget.setProperty(hmUI.prop.TEXT, "")
 
           if (data.running) {
             textWidget.setProperty(
@@ -80,12 +73,14 @@ Page(
 
     state: {},
     onInit() {
+      textWidget = hmUI.createWidget(hmUI.widget.TEXT, RESULT_TEXT)
     },
     build() {
       if (!buttonWidget)
         buttonWidget = hmUI.createWidget(hmUI.widget.BUTTON, ASK_BUTTON);
       buttonWidget.addEventListener(hmUI.event.CLICK_UP, () => {
         buttonWidget.setProperty(hmUI.prop.MORE, { color: 0x4A90E2 });
+        textWidget.setProperty(hmUI.prop.TEXT, "")
         this.pingServer()
       });
     },

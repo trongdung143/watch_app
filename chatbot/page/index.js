@@ -2,101 +2,198 @@ import { BasePage } from "@zeppos/zml/base-page";
 import * as hmUI from "@zos/ui";
 import { create, id } from '@zos/media'
 import {
-  ASK_BUTTON,
+  CHAT_BUTTON,
+  AUDIO_BUTTON,
   RESULT_TEXT,
 } from "zosLoader:./index.[pf].layout.js";
 
 let textWidget;
-let buttonWidget;
+let btnChatWidget;
+let btnAudioWidget;
+let wordTimer = null
+let isTyping = false
+
+const player = create(id.PLAYER)
+
 Page(
   BasePage({
-    // call API to fetch data
-    fetchData(message) {
-      this.request({
-        method: "CHAT",
-        data: { 'message': message }
+    state: {
+      // isDownload: false,
+      // isTransfer: false,
+      // filePath: "",
+      // fileName: "",
+      isTTS: true,
+    },
+    onInit() {
+      player.addEventListener(player.event.PREPARE, function (result) {
+        if (result) {
+          player.start()
+        } else {
+        }
       })
-        .then((data) => {
-          this.textToSpeech(data.result)
-          textWidget.setProperty(hmUI.prop.TEXT, data.result)
 
-        })
-        .catch((res) => {
-        });
+      player.addEventListener(player.event.COMPLETE, function (result) {
+        player.stop()
+      })
     },
 
-    textToSpeech(text) {
-      this.request({
-        method: "TTS",
-        data: { 'text': text }
-      })
-        .then((data) => {
-          if (data.result === "DONE_TTS") {
+    showWords(text, widget, speed = 180) {
+      if (!text || !widget) return
 
-          }
-        })
-        .catch((res) => {
-        });
+      stopShowWords(widget)
+
+      const words = text.match(/[^\s]+/g) || []
+      let index = 0
+      isTyping = true
+
+      widget.setProperty(hmUI.prop.TEXT_STYLE, {
+        textWrap: true,
+        textAlign: hmUI.align.LEFT,
+      })
+
+      widget.setProperty(hmUI.prop.TEXT, "")
+
+      wordTimer = setInterval(() => {
+        if (!isTyping) {
+          clearInterval(wordTimer)
+          wordTimer = null
+          return
+        }
+
+        widget.setProperty(
+          hmUI.prop.TEXT,
+          words.slice(0, index + 1).join(" ")
+        )
+
+        index++
+        if (index >= words.length) {
+          stopShowWords(widget)
+        }
+      }, speed)
     },
 
-    pingServer() {
-      this.request({
-        method: "PING",
-      })
-        .then((data) => {
-          textWidget.setProperty(hmUI.prop.TEXT, "")
+    stopShowWords(widget) {
+      isTyping = false
 
-          if (data.running) {
-            textWidget.setProperty(
-              hmUI.prop.TEXT,
-              ""
-            )
-            this.createKeyboard()
-          } else {
-            textWidget.setProperty(
-              hmUI.prop.TEXT,
-              data.result
-            )
-          }
-        })
-        .catch((res) => {
-        });
+      if (wordTimer) {
+        clearInterval(wordTimer)
+        wordTimer = null
+      }
+
+      if (widget) {
+        widget.setProperty(hmUI.prop.TEXT, "")
+      }
     },
 
     // keyboard event handlers
     // create keyboard
-    createKeyboard() {
+    createKeyboard(onDone) {
       hmUI.createKeyboard({
         inputType: hmUI.inputType.CHAR,
         onComplete: (_, result) => {
           this.destroyKeyboard()
-          this.fetchData(result.data)
+          onDone(result.data || "")
         },
         onCancel: (_, result) => {
           this.destroyKeyboard()
+          onDone("")
         },
         text: ''
       })
     },
 
+    async pingServer() {
+      try {
+        const data = await this.request({ method: "PING" })
+
+        if (data.running)
+          return true
+
+        textWidget.setProperty(hmUI.prop.TEXT, data.result)
+        return false
+      } catch (error) {
+        return false
+      }
+    },
+
+
+    async downTTS() {
+      try {
+        const data = await this.request({
+          method: "DOWN.TTS",
+        })
+        if (data.isDownSucc)
+          return true
+        return false
+      } catch (error) {
+        return false
+      }
+    },
+
+    async transTTS() {
+      try {
+        const data = await this.request({
+          method: "TRANS.TTS",
+        })
+        if (data.isTransSucc)
+          return true
+        return false
+      } catch (error) {
+        return false
+      }
+    },
+
+    async chatAI(msg) {
+      try {
+        const data = await this.request({
+          method: "CHAT",
+          data: { message: msg, audio: this.state.isTTS },
+        })
+        if (data.result === "NONE") {
+          textWidget.setProperty(hmUI.prop.TEXT, "out of tokens")
+          return
+        }
+        //showWords(data.result, textWidget, 180)
+        textWidget.setProperty(hmUI.prop.TEXT, data.result)
+        if (this.state.isTTS && await this.downTTS() && await this.transTTS()) {
+          player.setSource(player.source.FILE, { file: 'data://download/tts.mp3' })
+          player.prepare()
+        }
+      } catch (error) {
+        return false
+      }
+    },
+
     // destroy keyboard
     destroyKeyboard() {
       hmUI.deleteKeyboard()
-
     },
 
-    state: {},
-    onInit() {
-      textWidget = hmUI.createWidget(hmUI.widget.TEXT, RESULT_TEXT)
-    },
-    build() {
-      if (!buttonWidget)
-        buttonWidget = hmUI.createWidget(hmUI.widget.BUTTON, ASK_BUTTON);
-      buttonWidget.addEventListener(hmUI.event.CLICK_UP, () => {
-        buttonWidget.setProperty(hmUI.prop.MORE, { color: 0x4A90E2 });
-        textWidget.setProperty(hmUI.prop.TEXT, "")
-        this.pingServer()
-      });
+    async build() {
+      if (!btnChatWidget)
+        btnChatWidget = hmUI.createWidget(hmUI.widget.BUTTON, CHAT_BUTTON);
+      if (!textWidget)
+        textWidget = hmUI.createWidget(hmUI.widget.TEXT, RESULT_TEXT)
+      if (!btnAudioWidget)
+        btnAudioWidget = hmUI.createWidget(hmUI.widget.BUTTON, AUDIO_BUTTON);
+
+      btnAudioWidget.addEventListener(hmUI.event.CLICK_UP, async () => {
+        if (this.state.isTTS)
+          this.state.isTTS = false
+        else
+          this.state.isTTS = true
+      })
+
+      btnChatWidget.addEventListener(hmUI.event.CLICK_UP, async () => {
+        //this.stopShowWords(textWidget)
+        player.stop()
+        if (await this.pingServer()) {
+          this.createKeyboard(async (message) => {
+            if (message)
+              await this.chatAI(message)
+          })
+        }
+      })
     },
   })
 );

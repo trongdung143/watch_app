@@ -1,6 +1,7 @@
 from src.config.setup import ELEVENLABS_API_KEY
 from src.agents.workflow import graph
 
+import os
 from fastapi.responses import FileResponse
 from fastapi import APIRouter
 from langchain_core.messages import HumanMessage
@@ -12,10 +13,7 @@ router = APIRouter()
 
 class ChatRequest(BaseModel):
     message: str
-
-
-class TTSRequest(BaseModel):
-    text: str
+    audio: bool
 
 
 client = AsyncElevenLabs(
@@ -32,36 +30,36 @@ async def chat(data: ChatRequest):
         ai_response = response.get("messages", [])[-1].content
         if isinstance(ai_response, list):
             ai_response = ai_response[0].get("text", "tôi không hiểu bạn nói gì")
-        return {"answer": ai_response}
+
+        output_path = "src/data/audio/tts.mp3"
+        if data.audio:
+            output_path = "src/data/audio/tts.mp3"
+            with open(output_path, "wb") as f:
+                async for chunk in client.text_to_speech.convert(
+                    text=ai_response,
+                    voice_id="FGY2WhTYpPnrIDTdsKH5",
+                    model_id="eleven_flash_v2_5",
+                    output_format="mp3_44100_128",
+                ):
+                    f.write(chunk)
+        return {"answer": ai_response, "audio": "READY" if data.audio else "NONE"}
 
     except Exception as e:
         return {"error": "Error calling model"}
-
-
-@router.post("/tts")
-async def text_to_speech(data: TTSRequest):
-    try:
-        print("Generating TTS for text:", data.text)
-        output_path = "src/data/audio/tts.mp3"
-
-        with open(output_path, "wb") as f:
-            async for chunk in client.text_to_speech.convert(
-                text=data.text,
-                voice_id="FGY2WhTYpPnrIDTdsKH5",
-                model_id="eleven_flash_v2_5",
-                output_format="mp3_44100_128",
-            ):
-                f.write(chunk)
-        return {"status": "READY"}
-    except Exception as e:
-        return {"error": "Error in text to speech"}
 
 
 @router.get("/tts")
 async def get_tts():
     try:
         return FileResponse(
-            "src/data/audio/tts.mp3", media_type="audio/mpeg", filename="tts.mp3"
+            "src/data/audio/tts.mp3",
+            media_type="audio/mpeg",
+            filename="tts.mp3",
+            headers={
+                "Content-Length": str(os.path.getsize("src/data/audio/tts.mp3")),
+                "Accept-Ranges": "bytes",
+                "Cache-Control": "no-store",
+            },
         )
     except Exception as e:
         print(e)

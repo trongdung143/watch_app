@@ -35,54 +35,7 @@ Page(
       player.addEventListener(player.event.COMPLETE, function (result) {
         player.stop()
       })
-    },
 
-    showWords(text, widget, speed = 180) {
-      if (!text || !widget) return
-
-      stopShowWords(widget)
-
-      const words = text.match(/[^\s]+/g) || []
-      let index = 0
-      isTyping = true
-
-      widget.setProperty(hmUI.prop.TEXT_STYLE, {
-        textWrap: true,
-        textAlign: hmUI.align.LEFT,
-      })
-
-      widget.setProperty(hmUI.prop.TEXT, "")
-
-      wordTimer = setInterval(() => {
-        if (!isTyping) {
-          clearInterval(wordTimer)
-          wordTimer = null
-          return
-        }
-
-        widget.setProperty(
-          hmUI.prop.TEXT,
-          words.slice(0, index + 1).join(" ")
-        )
-
-        index++
-        if (index >= words.length) {
-          stopShowWords(widget)
-        }
-      }, speed)
-    },
-
-    stopShowWords(widget) {
-      isTyping = false
-
-      if (wordTimer) {
-        clearInterval(wordTimer)
-        wordTimer = null
-      }
-
-      if (widget) {
-        widget.setProperty(hmUI.prop.TEXT, "")
-      }
     },
 
     // keyboard event handlers
@@ -135,6 +88,7 @@ Page(
         const data = await this.request({
           method: "TRANS.TTS",
         })
+        // console.log(JSON.stringify(data))
         if (data.isTransSucc)
           return true
         return false
@@ -186,6 +140,7 @@ Page(
 
       btnChatWidget.addEventListener(hmUI.event.CLICK_UP, async () => {
         //this.stopShowWords(textWidget)
+        textWidget.setProperty(hmUI.prop.TEXT, "")
         player.stop()
         if (await this.pingServer()) {
           this.createKeyboard(async (message) => {

@@ -3,7 +3,7 @@ import * as hmUI from "@zos/ui";
 import { DEVICE_WIDTH, DEVICE_HEIGHT } from "../utils/config/device";
 
 export const CHAT_BUTTON = {
-  x: (DEVICE_WIDTH - px(64)) / 2,
+  x: px(DEVICE_WIDTH - px(64 * 2)),
   y: px(380),
   w: px(64),
   h: px(64),
@@ -12,7 +12,7 @@ export const CHAT_BUTTON = {
 };
 
 export const AUDIO_BUTTON = {
-  x: px(30),
+  x: px(64),
   y: px(380),
   w: px(64),
   h: px(64),
@@ -23,9 +23,9 @@ export const AUDIO_BUTTON = {
 
 export const RESULT_TEXT = {
   x: px(20),
-  y: px(20),
-  w: DEVICE_WIDTH - px(40),
-  h: px(DEVICE_HEIGHT - px(110)),
+  y: px(60),
+  w: px(DEVICE_WIDTH - px(40)),
+  h: px(DEVICE_HEIGHT - px(100)),
   color: 0xffffff,
   text_size: px(24),
   align_h: hmUI.align.CENTER_H,

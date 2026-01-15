@@ -1,5 +1,6 @@
 from src.config.setup import ELEVENLABS_API_KEY
 from src.agents.workflow import graph
+from src.api.utils import clean_text
 
 import os
 from fastapi.responses import FileResponse
@@ -31,17 +32,19 @@ async def chat(data: ChatRequest):
         if isinstance(ai_response, list):
             ai_response = ai_response[0].get("text", "tôi không hiểu bạn nói gì")
 
-        output_path = "src/data/audio/tts.mp3"
-        if data.audio:
+        ai_response = clean_text(ai_response)
+        if data.audio and ai_response:
             output_path = "src/data/audio/tts.mp3"
             with open(output_path, "wb") as f:
                 async for chunk in client.text_to_speech.convert(
                     text=ai_response,
                     voice_id="FGY2WhTYpPnrIDTdsKH5",
                     model_id="eleven_flash_v2_5",
-                    output_format="mp3_44100_128",
+                    output_format="mp3_22050_32",
                 ):
                     f.write(chunk)
+        if not ai_response:
+            ai_response = "NONE"
         return {"answer": ai_response, "audio": "READY" if data.audio else "NONE"}
 
     except Exception as e:

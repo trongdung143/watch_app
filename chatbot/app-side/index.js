@@ -1,6 +1,6 @@
 import { BaseSideService } from "@zeppos/zml/base-side";
 
-let url = "https://watch-app-lyj2.onrender.com" // http://192.168.1.100:8080
+let url = "http://192.168.1.100:8080" // http://192.168.1.100:8080
 
 function fetchWithTimeout(promise, ms) {
     return Promise.race([
@@ -58,13 +58,13 @@ async function chatAI(res, data) {
 
         res(null, {
             type: "CHAT",
-            result: resBody.answer || "NONE",
-            audio: resBody.audio || "NONE",
+            result: resBody.answer,
+            audio: resBody.audio,
         })
     } catch (error) {
         res(null, {
             type: "CHAT",
-            result: "TIMEOUT_OR_ERROR_CHAT",
+            result: "NONE",
         })
     }
 }

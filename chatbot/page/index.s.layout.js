@@ -25,9 +25,10 @@ export const RESULT_TEXT = {
   x: px(20),
   y: px(60),
   w: px(DEVICE_WIDTH - px(40)),
-  h: px(DEVICE_HEIGHT - px(100)),
+  h: px(300),
   color: 0xffffff,
   text_size: px(24),
   align_h: hmUI.align.CENTER_H,
   text_style: hmUI.text_style.WRAP,
+  text: "",
 };

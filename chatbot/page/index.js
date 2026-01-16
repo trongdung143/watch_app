@@ -6,13 +6,12 @@ import {
   AUDIO_BUTTON,
   RESULT_TEXT,
 } from "zosLoader:./index.[pf].layout.js";
+import { splitWords, isPunctuation } from "./utils";
 
 let textWidget;
 let btnChatWidget;
 let btnAudioWidget;
-let wordTimer = null
-let isTyping = false
-
+let wordTimer;
 const player = create(id.PLAYER)
 
 Page(
@@ -22,6 +21,9 @@ Page(
       // isTransfer: false,
       // filePath: "",
       // fileName: "",
+      isBusy: false,
+      answer: "",
+      answerWords: null,
       isTTS: true,
     },
     onInit() {
@@ -48,6 +50,7 @@ Page(
           onDone(result.data || "")
         },
         onCancel: (_, result) => {
+          this.state.isBusy = false
           this.destroyKeyboard()
           onDone("")
         },
@@ -55,10 +58,36 @@ Page(
       })
     },
 
+    startWordAnimation(data) {
+      this.state.answerWords = splitWords(data.result)
+      this.state.answer = ""
+      if (wordTimer) {
+        clearInterval(wordTimer)
+        wordTimer = null
+      }
+      wordTimer = setInterval(() => {
+        if (this.state.answerWords.length === 0) {
+          clearInterval(wordTimer)
+          this.state.answer = this.state.answer.trimEnd()
+          textWidget.setProperty(hmUI.prop.TEXT, this.state.answer)
+          wordTimer = null
+          return
+        }
+
+        const word = this.state.answerWords.shift()
+        if (isPunctuation(word))
+          this.state.answer = this.state.answer.trimEnd()
+        this.state.answer += word + " "
+
+        textWidget.setProperty(hmUI.prop.TEXT, this.state.answer)
+      }, 50)
+    },
+
+
     async pingServer() {
       try {
         const data = await this.request({ method: "PING" })
-
+        // console.log(JSON.stringify(data))
         if (data.running)
           return true
 
@@ -101,20 +130,31 @@ Page(
       try {
         const data = await this.request({
           method: "CHAT",
-          data: { message: msg, audio: this.state.isTTS },
+          data:
+          {
+            message: msg,
+            audio: this.state.isTTS,
+            model: "",
+            google_api: "",
+            elevenlabs_api: ""
+          },
         })
         if (data.result === "NONE") {
           textWidget.setProperty(hmUI.prop.TEXT, "out of tokens")
           return
         }
-        //showWords(data.result, textWidget, 180)
-        textWidget.setProperty(hmUI.prop.TEXT, data.result)
+
+        //textWidget.setProperty(hmUI.prop.TEXT, data.result)
+        this.startWordAnimation(data)
         if (this.state.isTTS && await this.downTTS() && await this.transTTS()) {
           player.setSource(player.source.FILE, { file: 'data://download/tts.mp3' })
           player.prepare()
         }
+
       } catch (error) {
         return false
+      } finally {
+        this.state.isBusy = false
       }
     },
 
@@ -124,31 +164,54 @@ Page(
     },
 
     async build() {
-      if (!btnChatWidget)
-        btnChatWidget = hmUI.createWidget(hmUI.widget.BUTTON, CHAT_BUTTON);
+      if (!btnChatWidget) {
+        btnChatWidget = hmUI.createWidget(hmUI.widget.BUTTON, CHAT_BUTTON)
+        btnChatWidget.addEventListener(hmUI.event.CLICK_DOWN, async () => {
+          if (!this.state.isBusy) {
+            this.state.isBusy = true
+            if (wordTimer) {
+              clearInterval(wordTimer)
+              wordTimer = null
+            }
+            player.stop()
+            textWidget.setProperty(hmUI.prop.TEXT, "")
+            this.state.answer = ""
+            if (await this.pingServer()) {
+              this.createKeyboard(async (message) => {
+                if (message)
+                  await this.chatAI(message)
+                else
+                  this.state.isBusy = false
+              })
+            }
+            else
+              this.state.isBusy = false
+          }
+        })
+      }
       if (!textWidget)
         textWidget = hmUI.createWidget(hmUI.widget.TEXT, RESULT_TEXT)
-      if (!btnAudioWidget)
-        btnAudioWidget = hmUI.createWidget(hmUI.widget.BUTTON, AUDIO_BUTTON);
+      if (!btnAudioWidget) {
+        btnAudioWidget = hmUI.createWidget(hmUI.widget.BUTTON, AUDIO_BUTTON)
 
-      btnAudioWidget.addEventListener(hmUI.event.CLICK_UP, async () => {
-        if (this.state.isTTS)
-          this.state.isTTS = false
-        else
-          this.state.isTTS = true
-      })
+        btnAudioWidget.addEventListener(hmUI.event.CLICK_DOWN, () => {
+          if (this.state.isTTS)
+            this.state.isTTS = false
+          else
+            this.state.isTTS = true
+        })
+      }
 
-      btnChatWidget.addEventListener(hmUI.event.CLICK_UP, async () => {
-        //this.stopShowWords(textWidget)
-        textWidget.setProperty(hmUI.prop.TEXT, "")
-        player.stop()
-        if (await this.pingServer()) {
-          this.createKeyboard(async (message) => {
-            if (message)
-              await this.chatAI(message)
-          })
-        }
-      })
+
+    },
+
+    onDestroy() {
+      if (wordTimer) {
+        clearInterval(wordTimer)
+        wordTimer = null
+      }
+      player.stop()
+      this.deleteKeyboard()
     },
   })
 );

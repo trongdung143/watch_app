@@ -1,25 +1,13 @@
 import { BaseSideService } from "@zeppos/zml/base-side";
 
-let url = "http://192.168.1.100:8080" // http://192.168.1.100:8080
-
-function fetchWithTimeout(promise, ms) {
-    return Promise.race([
-        promise,
-        new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("TIMEOUT")), ms)
-        ),
-    ])
-}
+let url = "http://192.168.1.13:8080" // https://watch-app-lyj2.onrender.com http://192.168.1.200:8080
 
 async function pingServer(res) {
     try {
-        const response = await fetchWithTimeout(
-            fetch({
-                url: `${url}/health`,
-                method: 'GET',
-            }),
-            2000
-        )
+        const response = await fetch({
+            url: `${url}/health`,
+            method: 'GET',
+        })
 
         const resBody =
             typeof response.body === 'string'

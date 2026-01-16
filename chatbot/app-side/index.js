@@ -1,6 +1,6 @@
 import { BaseSideService } from "@zeppos/zml/base-side";
 
-let url = "http://192.168.1.100:8080" // https://watch-app-lyj2.onrender.com http://192.168.1.200:8080
+let url = "https://watch-app-lyj2.onrender.com" // https://watch-app-lyj2.onrender.com http://192.168.1.200:8080
 let googleApiKey = ""
 let modelName = ""
 let elevenlabsApiKey = ""

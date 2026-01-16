@@ -29,7 +29,7 @@ export const RESULT_TEXT = {
   w: px(DEVICE_WIDTH - px(40)),
   h: px(300),
   color: 0xffffff,
-  text_size: px(24),
+  text_size: px(30),
   align_h: hmUI.align.CENTER_H,
   text_style: hmUI.text_style.WRAP,
   text: "",

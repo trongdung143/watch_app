@@ -9,6 +9,7 @@ import {
 } from "zosLoader:./index.[pf].layout.js";
 import { splitWords, isPunctuation } from "./utils";
 import { DEVICE_UUID } from "../utils/config/device";
+import { setPageBrightTime, resetPageBrightTime } from '@zos/display'
 
 let textWidget;
 let btnChatWidget;
@@ -26,6 +27,10 @@ Page(
       isTTS: true,
     },
     onInit() {
+      setPageBrightTime({
+        brightTime: 60000,
+      })
+
       player.addEventListener(player.event.PREPARE, function (result) {
         if (result) {
           player.start()
@@ -228,7 +233,7 @@ Page(
     },
 
     onDestroy() {
-
+      resetPageBrightTime()
     },
   })
 );

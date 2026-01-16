@@ -1,6 +1,6 @@
 import { getDeviceInfo } from "@zos/device";
 import { mkdirSync } from '@zos/fs'
-export const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT } = getDeviceInfo();
+export const { width: DEVICE_WIDTH, height: DEVICE_HEIGHT, uuid: DEVICE_UUID } = getDeviceInfo();
 export function mkdirAudio() {
     try {
         const result = mkdirSync({

@@ -1,10 +1,9 @@
-from src.config.setup import ELEVENLABS_API_KEY
 from src.agents.workflow import graph
 from src.api.utils import clean_text
 
 import os
 from fastapi.responses import FileResponse
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
 from elevenlabs import AsyncElevenLabs
@@ -13,20 +12,27 @@ router = APIRouter()
 
 
 class ChatRequest(BaseModel):
+    uuid: str
     message: str
     audio: bool
-
-
-client = AsyncElevenLabs(
-    api_key=ELEVENLABS_API_KEY,
-)
+    google_api_key: str
+    model_name: str
+    elevenlabs_api_key: str
 
 
 @router.post("/chat")
 async def chat(data: ChatRequest):
     try:
-        input_state = {"messages": [HumanMessage(content=data.message)]}
-        config = {"configurable": {"thread_id": "123"}}
+        input_state = {
+            "messages": [HumanMessage(content=data.message)],
+            "google_api_key": data.google_api_key,
+            "model_name": data.model_name,
+        }
+        config = {
+            "configurable": {
+                "thread_id": data.uuid,
+            }
+        }
         response = await graph.ainvoke(input_state, config)
         ai_response = response.get("messages", [])[-1].content
         if isinstance(ai_response, list):
@@ -34,7 +40,10 @@ async def chat(data: ChatRequest):
 
         ai_response = clean_text(ai_response)
         if data.audio and ai_response:
-            output_path = "src/data/audio/tts.mp3"
+            client = AsyncElevenLabs(
+                api_key=data.elevenlabs_api_key,
+            )
+            output_path = f"src/data/audio/{data.uuid}.mp3"
             with open(output_path, "wb") as f:
                 async for chunk in client.text_to_speech.convert(
                     text=ai_response,
@@ -48,18 +57,20 @@ async def chat(data: ChatRequest):
         return {"answer": ai_response, "audio": "READY" if data.audio else "NONE"}
 
     except Exception as e:
+        print(e)
         return {"error": "Error calling model"}
 
 
 @router.get("/tts")
-async def get_tts():
+async def get_tts(uuid: str = Query(...)):
     try:
+        output_path = f"src/data/audio/{uuid}.mp3"
         return FileResponse(
-            "src/data/audio/tts.mp3",
+            output_path,
             media_type="audio/mpeg",
-            filename="tts.mp3",
+            filename=f"{uuid}.mp3",
             headers={
-                "Content-Length": str(os.path.getsize("src/data/audio/tts.mp3")),
+                "Content-Length": str(os.path.getsize(output_path)),
                 "Accept-Ranges": "bytes",
                 "Cache-Control": "no-store",
             },
@@ -67,3 +78,12 @@ async def get_tts():
     except Exception as e:
         print(e)
         return {"error": "Error retrieving TTS audio"}
+
+
+@router.get("/delete-messages")
+async def delete_messages():
+    try:
+        pass
+    except Exception as e:
+        print(e)
+        return {"error": "Error deleting messages"}

@@ -1,16 +1,19 @@
 import { BaseSideService } from "@zeppos/zml/base-side";
 
-let url = "http://192.168.1.13:8080" // https://watch-app-lyj2.onrender.com http://192.168.1.200:8080
-
+let url = "http://192.168.1.100:8080" // https://watch-app-lyj2.onrender.com http://192.168.1.200:8080
+let googleApiKey = ""
+let modelName = ""
+let elevenlabsApiKey = ""
+let listenerValuesAdded = false
 async function pingServer(res) {
     try {
         const response = await fetch({
             url: `${url}/health`,
-            method: 'GET',
+            method: "GET",
         })
 
         const resBody =
-            typeof response.body === 'string'
+            typeof response.body === "string"
                 ? JSON.parse(response.body)
                 : response.body
 
@@ -18,6 +21,7 @@ async function pingServer(res) {
             type: "PING",
             running: true,
         })
+
     } catch (error) {
         res(null, {
             type: "PING",
@@ -29,17 +33,27 @@ async function pingServer(res) {
 
 async function chatAI(res, data) {
     try {
+        if (!googleApiKey || !modelName) {
+            return res(null, { type: "CHAT", result: "NONE_02" })
+        }
+
+        if (data.audio && !elevenlabsApiKey) {
+            return res(null, { type: "CHAT", result: "NONE_03" })
+        }
+        data.google_api_key = googleApiKey || ""
+        data.model_name = modelName || ""
+        data.elevenlabs_api_key = elevenlabsApiKey || ""
         const response = await fetch({
             url: `${url}/chat`,
-            method: 'POST',
+            method: "POST",
             headers: {
-                'Content-Type': 'application/json'
+                "Content-Type": "application/json"
             },
             body: JSON.stringify(data),
         })
 
         const resBody =
-            typeof response.body === 'string'
+            typeof response.body === "string"
                 ? JSON.parse(response.body)
                 : response.body
 
@@ -49,21 +63,22 @@ async function chatAI(res, data) {
             result: resBody.answer,
             audio: resBody.audio,
         })
+
     } catch (error) {
         res(null, {
             type: "CHAT",
-            result: "NONE",
+            result: "NONE_01",
         })
     }
 }
 
 
-function downTTS(res) {
+function downTTS(res, data) {
     try {
         const task = network.downloader.downloadFile({
-            url: `${url}/tts`,
+            url: `${url}/tts?uuid=${data.uuid}`,
             timeout: 60000,
-            filePath: 'data://audio/tts.mp3',
+            filePath: `data://audio/${data.uuid}.mp3`,
         })
 
         task.onSuccess = (event) => {
@@ -89,22 +104,22 @@ function downTTS(res) {
     }
 }
 
-async function transTTS(res) {
+async function transTTS(res, data) {
     try {
         const outbox = transferFile.getOutbox()
-        const fileObject = outbox.enqueueFile('data://download/audio/tts.mp3', { type: "audio", name: "tts.mp3" })
+        const fileObject = outbox.enqueueFile(`data://download/audio/${data.uuid}.mp3`, { type: "audio", name: `${data.uuid}.mp3` })
 
-        fileObject.on('progress', (event) => {
+        fileObject.on("progress", (event) => {
 
         })
 
-        fileObject.on('change', (event) => {
-            if (event.data.readyState === 'transferred')
+        fileObject.on("change", (event) => {
+            if (event.data.readyState === "transferred")
                 res(null, {
                     type: "TRANS.TTS",
                     isTransSucc: true,
                 })
-            else if (event.data.readyState === 'error')
+            else if (event.data.readyState === "error")
                 res(null, {
                     type: "TRANS.TTS",
                     isTransSucc: false,
@@ -120,8 +135,33 @@ async function transTTS(res) {
     }
 }
 
+function updateValues() {
+    if (!googleApiKey)
+        googleApiKey = settings.settingsStorage.getItem("googleApiKey")
+
+    if (!modelName)
+        modelName = settings.settingsStorage.getItem("modelName")
+
+    if (!elevenlabsApiKey)
+        elevenlabsApiKey = settings.settingsStorage.getItem("elevenlabsApiKey")
+
+    if (!listenerValuesAdded) {
+        settings.settingsStorage.addListener("change", ({ key, newValue, oldValue }) => {
+            if (key === "googleApiKey") googleApiKey = newValue
+            if (key === "modelName") modelName = newValue
+            if (key === "elevenlabsApiKey") elevenlabsApiKey = newValue
+        })
+        listenerValuesAdded = true
+    }
+}
+
 AppSideService(
     BaseSideService({
+
+        onInit() {
+            updateValues()
+        },
+
         onRequest(req, res) {
             switch (req.method) {
                 case "CHAT":
@@ -133,11 +173,11 @@ AppSideService(
                     break
 
                 case "DOWN.TTS":
-                    downTTS(res)
+                    downTTS(res, req.data)
                     break
 
                 case "TRANS.TTS":
-                    transTTS(res)
+                    transTTS(res, req.data)
                     break
 
                 default:

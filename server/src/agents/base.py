@@ -13,6 +13,7 @@ class BaseAgent:
     def __init__(
         self,
         agent_name: str,
+        model_name: str,
         state: type[State] = State | None,
         tools: Sequence[BaseTool] | None = None,
     ):
@@ -21,7 +22,7 @@ class BaseAgent:
         self._agent_name = agent_name
 
         self._model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash-lite",
+            model=model_name,
             google_api_key=GOOGLE_API_KEY,
             disable_streaming=True,
         ).bind_tools(self._tools)

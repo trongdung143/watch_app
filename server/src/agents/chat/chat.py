@@ -5,6 +5,7 @@ from src.agents.chat.tool import tools
 
 from langgraph.prebuilt.tool_node import tools_condition, ToolNode
 from langchain_core.messages import AIMessage
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 
 class ChatState(State):
@@ -15,13 +16,14 @@ class ChatAgent(BaseAgent):
     def __init__(self) -> None:
         super().__init__(
             agent_name="chat",
+            model_name="gemini-3-flash",
             state=ChatState,
             tools=tools,
         )
 
         self._prompt = prompt_chat
 
-        self._chain = self._prompt | self._model
+        # self._chain = self._prompt | self._model
 
         self._tools_node = ToolNode(tools)
 
@@ -29,8 +31,16 @@ class ChatAgent(BaseAgent):
 
     async def chat(self, state: ChatState) -> ChatState:
         try:
+
+            model = ChatGoogleGenerativeAI(
+                model=state.get("model_name"),
+                google_api_key=state.get("google_api_key"),
+                disable_streaming=True,
+            ).bind_tools(tools)
+
+            chain = self._prompt | model
             messages = state.get("messages")
-            response = await self._chain.ainvoke({"messages": messages})
+            response = await chain.ainvoke({"messages": messages})
             output = response.content
             state.update(messages=[response], output=output)
         except Exception as e:

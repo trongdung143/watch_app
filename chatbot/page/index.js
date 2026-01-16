@@ -5,22 +5,21 @@ import {
   CHAT_BUTTON,
   AUDIO_BUTTON,
   RESULT_TEXT,
+  AI_IMG
 } from "zosLoader:./index.[pf].layout.js";
 import { splitWords, isPunctuation } from "./utils";
+import { DEVICE_UUID } from "../utils/config/device";
 
 let textWidget;
 let btnChatWidget;
 let btnAudioWidget;
 let wordTimer;
+let imgWidget;
 const player = create(id.PLAYER)
 
 Page(
   BasePage({
     state: {
-      // isDownload: false,
-      // isTransfer: false,
-      // filePath: "",
-      // fileName: "",
       isBusy: false,
       answer: "",
       answerWords: null,
@@ -103,6 +102,7 @@ Page(
       try {
         const data = await this.request({
           method: "DOWN.TTS",
+          data: { uuid: DEVICE_UUID }
         })
         if (data.isDownSucc)
           return true
@@ -116,6 +116,7 @@ Page(
       try {
         const data = await this.request({
           method: "TRANS.TTS",
+          data: { uuid: DEVICE_UUID }
         })
         // console.log(JSON.stringify(data))
         if (data.isTransSucc)
@@ -128,26 +129,33 @@ Page(
 
     async chatAI(msg) {
       try {
+        imgWidget = hmUI.createWidget(hmUI.widget.IMG, AI_IMG)
         const data = await this.request({
           method: "CHAT",
           data:
           {
+            uuid: DEVICE_UUID,
             message: msg,
             audio: this.state.isTTS,
-            model: "",
-            google_api: "",
-            elevenlabs_api: ""
           },
         })
-        if (data.result === "NONE") {
-          textWidget.setProperty(hmUI.prop.TEXT, "out of tokens")
-          return
+        switch (data.result) {
+          case "NONE_01":
+            textWidget.setProperty(hmUI.prop.TEXT, "Out of tokens")
+            return
+
+          case "NONE_02":
+            textWidget.setProperty(hmUI.prop.TEXT, "Missing LLM API key or model name")
+            return
+
+          case "NONE_03":
+            textWidget.setProperty(hmUI.prop.TEXT, "Missing TTS API key")
+            return
         }
 
-        //textWidget.setProperty(hmUI.prop.TEXT, data.result)
         this.startWordAnimation(data)
         if (this.state.isTTS && await this.downTTS() && await this.transTTS()) {
-          player.setSource(player.source.FILE, { file: 'data://download/tts.mp3' })
+          player.setSource(player.source.FILE, { file: `data://download/${DEVICE_UUID}.mp3` })
           player.prepare()
         }
 
@@ -155,6 +163,10 @@ Page(
         return false
       } finally {
         this.state.isBusy = false
+        if (imgWidget) {
+          hmUI.deleteWidget(imgWidget)
+          imgWidget = null
+        }
       }
     },
 
@@ -167,6 +179,7 @@ Page(
       if (!btnChatWidget) {
         btnChatWidget = hmUI.createWidget(hmUI.widget.BUTTON, CHAT_BUTTON)
         btnChatWidget.addEventListener(hmUI.event.CLICK_DOWN, async () => {
+          console.log("chat")
           if (!this.state.isBusy) {
             this.state.isBusy = true
             if (wordTimer) {
@@ -195,10 +208,19 @@ Page(
         btnAudioWidget = hmUI.createWidget(hmUI.widget.BUTTON, AUDIO_BUTTON)
 
         btnAudioWidget.addEventListener(hmUI.event.CLICK_DOWN, () => {
-          if (this.state.isTTS)
+          console.log("audio")
+          if (this.state.isTTS) {
             this.state.isTTS = false
-          else
+            btnAudioWidget.setProperty(hmUI.prop.TEXT, {
+              text: "OFF",
+            })
+          }
+          else {
             this.state.isTTS = true
+            btnAudioWidget.setProperty(hmUI.prop.TEXT, {
+              text: "ON"
+            })
+          }
         })
       }
 
@@ -206,12 +228,7 @@ Page(
     },
 
     onDestroy() {
-      if (wordTimer) {
-        clearInterval(wordTimer)
-        wordTimer = null
-      }
-      player.stop()
-      this.deleteKeyboard()
+
     },
   })
 );

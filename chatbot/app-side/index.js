@@ -140,34 +140,34 @@ async function transTTS(res, data) {
     }
 }
 
-async function clearMessages() {
+async function clearMessages(res, data) {
     try {
         const response = await fetch({
-            url: `${serverUrl}/clear-messages`,
+            url: `${serverUrl}/clear-messages?uuid=${data.uuid}`,
             method: "GET",
         })
 
-
+        res(null, {
+            type: "CLEAR.MESSAGES",
+            result: "Clear messages",
+        })
     } catch (error) {
-
-    }
-    finally {
-        settings.settingsStorage.setItem("clear", "0")
+        res(null, {
+            type: "CLEAR.MESSAGES",
+            result: false,
+        })
     }
 }
 
 function updateValues() {
-    if (!googleApiKey)
-        googleApiKey = settings.settingsStorage.getItem("googleApiKey") || ""
 
-    if (!modelName)
-        modelName = settings.settingsStorage.getItem("modelName") || ""
+    googleApiKey = settings.settingsStorage.getItem("googleApiKey") || googleApiKey
 
-    if (!elevenlabsApiKey)
-        elevenlabsApiKey = settings.settingsStorage.getItem("elevenlabsApiKey") || ""
+    modelName = settings.settingsStorage.getItem("modelName") || modelName
 
-    if (!serverUrl)
-        serverUrl = settings.settingsStorage.getItem("serverUrl") || ""
+    elevenlabsApiKey = settings.settingsStorage.getItem("elevenlabsApiKey") || elevenlabsApiKey
+
+    serverUrl = settings.settingsStorage.getItem("serverUrl") || serverUrl
 
     if (!listenerValuesAdded) {
         settings.settingsStorage.addListener("change", ({ key, newValue, oldValue }) => {
@@ -186,11 +186,6 @@ function updateValues() {
 
                 case "serverUrl":
                     serverUrl = newValue || oldValue
-                    break
-
-                case "clear":
-                    if (newValue === "1")
-                        clearMessages()
                     break
 
                 default:
@@ -212,19 +207,27 @@ AppSideService(
         onRequest(req, res) {
             switch (req.method) {
                 case "CHAT":
+                    //return 
                     chatAI(res, req.data)
                     break
 
                 case "PING":
+                    // return 
                     pingServer(res)
                     break
 
                 case "DOWN.TTS":
+                    // return 
                     downTTS(res, req.data)
                     break
 
                 case "TRANS.TTS":
+                    //return 
                     transTTS(res, req.data)
+                    break
+
+                case "CLEAR.MESSAGES":
+                    clearMessages(res, req.data)
                     break
 
                 default:

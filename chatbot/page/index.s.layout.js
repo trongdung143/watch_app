@@ -12,7 +12,7 @@ export const CHAT_BUTTON = {
 };
 
 export const AUDIO_BUTTON = {
-  x: px(20),
+  x: px(30),
   y: px(380),
   w: px(52),
   h: px(52),
@@ -21,6 +21,15 @@ export const AUDIO_BUTTON = {
   normal_src: "audio.png",
   press_src: "audio.png"
 };
+export const CLEAR_BUTTON = {
+  x: px(DEVICE_WIDTH - px(82)),
+  y: px(380),
+  w: px(52),
+  h: px(52),
+  normal_src: "clear.png",
+  press_src: "clear.png"
+};
+
 
 
 export const RESULT_TEXT = {

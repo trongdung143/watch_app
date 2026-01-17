@@ -5,7 +5,8 @@ import {
   CHAT_BUTTON,
   AUDIO_BUTTON,
   RESULT_TEXT,
-  AI_IMG
+  AI_IMG,
+  CLEAR_BUTTON
 } from "zosLoader:./index.[pf].layout.js";
 import { splitWords, isPunctuation } from "./utils";
 import { DEVICE_UUID } from "../utils/config/device";
@@ -14,6 +15,7 @@ import { setPageBrightTime, resetPageBrightTime } from '@zos/display'
 let textWidget;
 let btnChatWidget;
 let btnAudioWidget;
+let btnClearMessages;
 let wordTimer;
 let imgWidget;
 const player = create(id.PLAYER)
@@ -132,6 +134,18 @@ Page(
       }
     },
 
+    async clearMessages() {
+      try {
+        const data = await this.request({
+          method: "CLEAR.MESSAGES",
+          data: { uuid: DEVICE_UUID }
+        })
+        textWidget.setProperty(hmUI.prop.TEXT, data.result)
+      } catch (error) {
+
+      }
+    },
+
     async chatAI(msg) {
       try {
         imgWidget = hmUI.createWidget(hmUI.widget.IMG, AI_IMG)
@@ -232,7 +246,13 @@ Page(
         })
       }
 
-
+      if (!btnClearMessages) {
+        btnClearMessages = hmUI.createWidget(hmUI.widget.BUTTON, CLEAR_BUTTON)
+        btnClearMessages.addEventListener(hmUI.event.CLICK_DOWN, () => {
+          console.log("clear")
+          this.clearMessages()
+        })
+      }
     },
 
     onDestroy() {

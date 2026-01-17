@@ -1,5 +1,5 @@
 AppSettingsPage({
-    onInit() { settings.settingsStorage.setItem("clear", "0") },
+    onInit() { },
     build() {
         return Section(
             {
@@ -34,13 +34,6 @@ AppSettingsPage({
                     settingsKey: "serverUrl",
                     value: "",
                 }),
-                Button({
-                    label: "Clear Messages",
-                    onClick: () => {
-                        if (settings.settingsStorage.getItem("clear") === "0")
-                            settings.settingsStorage.setItem("clear", "1")
-                    }
-                })
             ]
         )
     },

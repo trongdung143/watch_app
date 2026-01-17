@@ -45,14 +45,21 @@ async def chat(data: ChatRequest):
                 api_key=data.elevenlabs_api_key,
             )
             output_path = f"src/data/audio/{data.uuid}.mp3"
+            chunks: list[bytes] = []
+
+            async for chunk in client.text_to_speech.convert(
+                text=ai_response,
+                voice_id="FGY2WhTYpPnrIDTdsKH5",
+                model_id="eleven_flash_v2_5",
+                output_format="mp3_22050_32",
+                language_code="vi",
+            ):
+                chunks.append(chunk)
+
+            audio_bytes = b"".join(chunks)
             with open(output_path, "wb") as f:
-                async for chunk in client.text_to_speech.convert(
-                    text=ai_response,
-                    voice_id="FGY2WhTYpPnrIDTdsKH5",
-                    model_id="eleven_flash_v2_5",
-                    output_format="mp3_22050_32",
-                ):
-                    f.write(chunk)
+                f.write(audio_bytes)
+
         if not ai_response:
             ai_response = "NONE"
         return {"answer": ai_response, "audio": "READY" if data.audio else "NONE"}
@@ -81,7 +88,7 @@ async def get_tts(uuid: str = Query(...)):
         return {"error": "Error retrieving TTS audio"}
 
 
-@router.get("/clear_messages")
+@router.get("/clear-messages")
 async def clear_cache(uuid: str = Query(...)):
     try:
         input_state = {

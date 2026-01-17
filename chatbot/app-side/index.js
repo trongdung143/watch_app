@@ -1,14 +1,15 @@
 import { BaseSideService } from "@zeppos/zml/base-side";
 
-let url = "https://watch-app-lyj2.onrender.com" // https://watch-app-lyj2.onrender.com http://192.168.1.200:8080
+let serverUrl = "http://192.168.1.100:8080" // https://watch-app-lyj2.onrender.com 
 let googleApiKey = ""
-let modelName = ""
+let modelName = "gemini-2.5-flash-lite"
 let elevenlabsApiKey = ""
 let listenerValuesAdded = false
+
 async function pingServer(res) {
     try {
         const response = await fetch({
-            url: `${url}/health`,
+            url: `${serverUrl}/health`,
             method: "GET",
         })
 
@@ -20,6 +21,7 @@ async function pingServer(res) {
         res(null, {
             type: "PING",
             running: true,
+            serverName: serverUrl,
         })
 
     } catch (error) {
@@ -27,6 +29,7 @@ async function pingServer(res) {
             type: "PING",
             running: false,
             result: "TIMEOUT_OR_ERROR_PING",
+            serverName: serverUrl,
         })
     }
 }
@@ -44,7 +47,7 @@ async function chatAI(res, data) {
         data.model_name = modelName || ""
         data.elevenlabs_api_key = elevenlabsApiKey || ""
         const response = await fetch({
-            url: `${url}/chat`,
+            url: `${serverUrl}/chat`,
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -57,6 +60,8 @@ async function chatAI(res, data) {
                 ? JSON.parse(response.body)
                 : response.body
 
+        if (resBody.answer === "NONE")
+            resBody.answer = "NONE_01"
 
         res(null, {
             type: "CHAT",
@@ -76,7 +81,7 @@ async function chatAI(res, data) {
 function downTTS(res, data) {
     try {
         const task = network.downloader.downloadFile({
-            url: `${url}/tts?uuid=${data.uuid}`,
+            url: `${serverUrl}/tts?uuid=${data.uuid}`,
             timeout: 60000,
             filePath: `data://audio/${data.uuid}.mp3`,
         })
@@ -135,21 +140,63 @@ async function transTTS(res, data) {
     }
 }
 
+async function clearMessages() {
+    try {
+        const response = await fetch({
+            url: `${serverUrl}/clear-messages`,
+            method: "GET",
+        })
+
+
+    } catch (error) {
+
+    }
+    finally {
+        settings.settingsStorage.setItem("clear", "0")
+    }
+}
+
 function updateValues() {
     if (!googleApiKey)
-        googleApiKey = settings.settingsStorage.getItem("googleApiKey")
+        googleApiKey = settings.settingsStorage.getItem("googleApiKey") || ""
 
     if (!modelName)
-        modelName = settings.settingsStorage.getItem("modelName")
+        modelName = settings.settingsStorage.getItem("modelName") || ""
 
     if (!elevenlabsApiKey)
-        elevenlabsApiKey = settings.settingsStorage.getItem("elevenlabsApiKey")
+        elevenlabsApiKey = settings.settingsStorage.getItem("elevenlabsApiKey") || ""
+
+    if (!serverUrl)
+        serverUrl = settings.settingsStorage.getItem("serverUrl") || ""
 
     if (!listenerValuesAdded) {
         settings.settingsStorage.addListener("change", ({ key, newValue, oldValue }) => {
-            if (key === "googleApiKey") googleApiKey = newValue
-            if (key === "modelName") modelName = newValue
-            if (key === "elevenlabsApiKey") elevenlabsApiKey = newValue
+            switch (key) {
+                case "googleApiKey":
+                    googleApiKey = newValue || oldValue
+                    break
+
+                case "modelName":
+                    modelName = newValue || oldValue
+                    break
+
+                case "elevenlabsApiKey":
+                    elevenlabsApiKey = newValue || oldValue
+                    break
+
+                case "serverUrl":
+                    serverUrl = newValue || oldValue
+                    break
+
+                case "clear":
+                    if (newValue === "1")
+                        clearMessages()
+                    break
+
+                default:
+                    break
+            }
+
         })
         listenerValuesAdded = true
     }

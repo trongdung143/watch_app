@@ -5,7 +5,7 @@ router = APIRouter()
 
 @router.get("/health")
 async def health():
-    return {"status": "SERVER_IS_RUNNING"}
+    return {"status": "RUNNING"}
 
 
 @router.head("/ping")

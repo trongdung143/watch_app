@@ -91,7 +91,7 @@ Page(
     async pingServer() {
       try {
         const data = await this.request({ method: "PING" })
-        // console.log(JSON.stringify(data))
+        console.log(JSON.stringify(data))
         if (data.running)
           return true
 
@@ -157,7 +157,10 @@ Page(
             textWidget.setProperty(hmUI.prop.TEXT, "Missing TTS API key")
             return
         }
-
+        if (imgWidget) {
+          hmUI.deleteWidget(imgWidget)
+          imgWidget = null
+        }
         this.startWordAnimation(data)
         if (this.state.isTTS && await this.downTTS() && await this.transTTS()) {
           player.setSource(player.source.FILE, { file: `data://download/${DEVICE_UUID}.mp3` })

@@ -27,6 +27,7 @@ async def chat(data: ChatRequest):
             "messages": [HumanMessage(content=data.message)],
             "google_api_key": data.google_api_key,
             "model_name": data.model_name,
+            "action": "chat",
         }
         config = {
             "configurable": {
@@ -80,10 +81,20 @@ async def get_tts(uuid: str = Query(...)):
         return {"error": "Error retrieving TTS audio"}
 
 
-@router.get("/delete-messages")
-async def delete_messages():
+@router.get("/clear_messages")
+async def clear_cache(uuid: str = Query(...)):
     try:
-        pass
+        input_state = {
+            "messages": [HumanMessage(content="clear messages")],
+            "action": "clear_messages",
+        }
+        config = {
+            "configurable": {
+                "thread_id": uuid,
+            }
+        }
+        await graph.ainvoke(input_state, config)
+        return {"status": "CLEAR"}
     except Exception as e:
         print(e)
-        return {"error": "Error deleting messages"}
+        return {"error": "Error clear messages"}

@@ -11,6 +11,10 @@ prompt_chat = ChatPromptTemplate.from_messages(
             
             Nếu cần để thực hiện yêu cầu của người dùng, bạn có thể sử dụng các công cụ (tool) sẵn có.
             Tuy nhiên, chỉ sử dụng tool khi thật sự cần.
+            
+            Quan trọng:
+                - Kết quả khi phản hồi bắt buộc chỉ sử dụng chữ cái, chữ số và các dấu. 
+                - Câu trả lời một cách ngắn gọn nhất có thể, súc tích đúng vào câu hỏi người dùng hỏi.
             """,
         ),
         ("placeholder", "{messages}"),

@@ -1,7 +1,7 @@
 import { BaseSideService } from "@zeppos/zml/base-side";
 
 let serverUrl = "http://192.168.1.100:8080" // https://watch-app-lyj2.onrender.com 
-let googleApiKey = ""
+let googleApiKey = "AIzaSyA6wNp3GD_8KVTtt5gxihRf0UMa892n7yw"
 let modelName = "gemini-2.5-flash-lite"
 let elevenlabsApiKey = ""
 let listenerValuesAdded = false
@@ -11,6 +11,7 @@ async function pingServer(res) {
         const response = await fetch({
             url: `${serverUrl}/health`,
             method: "GET",
+            timeout: 5000,
         })
 
         const resBody =
@@ -53,6 +54,7 @@ async function chatAI(res, data) {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify(data),
+            timeout: 20000,
         })
 
         const resBody =

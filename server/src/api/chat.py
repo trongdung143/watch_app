@@ -23,6 +23,7 @@ class ChatRequest(BaseModel):
 @router.post("/chat")
 async def chat(data: ChatRequest):
     try:
+        os.makedirs("src/data/audio", exist_ok=True)
         input_state = {
             "messages": [HumanMessage(content=data.message)],
             "google_api_key": data.google_api_key,

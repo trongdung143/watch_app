@@ -31,7 +31,6 @@ class ChatAgent(BaseAgent):
 
     async def chat(self, state: ChatState) -> ChatState:
         try:
-
             model = ChatGoogleGenerativeAI(
                 model=state.get("model_name"),
                 google_api_key=state.get("google_api_key"),

@@ -1,6 +1,6 @@
 import { BaseSideService } from "@zeppos/zml/base-side";
 
-let serverUrl = "http://192.168.1.100:8080" // https://watch-app-lyj2.onrender.com 
+let serverUrl = "http://192.168.1.100:8080" // 
 let googleApiKey = ""
 let modelName = "gemini-2.5-flash-lite"
 let elevenlabsApiKey = ""

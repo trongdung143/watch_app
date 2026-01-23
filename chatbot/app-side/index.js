@@ -1,6 +1,6 @@
 import { BaseSideService } from "@zeppos/zml/base-side";
 
-let serverUrl = "http://192.168.1.100:8080" // 
+let serverUrl = "" // server URL
 let googleApiKey = ""
 let modelName = "gemini-2.5-flash-lite"
 let elevenlabsApiKey = ""
